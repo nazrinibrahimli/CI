@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture-Based Lock</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #000;
+            margin: 20px 0;
+        }
+        img {
+            border: 2px solid #000;
+            border-radius: 10px;
+            width: 60%;
+            max-width: 500px;
+            margin: 20px auto;
+            display: block;
+        }
+        p {
+            font-size: 16px;
+            color: #000;
+        }
+        #current-gesture {
+            font-size: 18px;
+            color: #555;
+            margin: 10px 0;
+        }
+        #success-message {
+            font-size: 20px;
+            color: green;
+            font-weight: bold;
+            margin: 10px 0;
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <h1>Gesture-Based Lock Application</h1>
+    <div>
+        <img src="/video_feed" alt="Gesture Feed" id="videoFeed">
+    </div>
+    <div id="current-gesture">Detected Gesture: None</div>
+    <div id="success-message">Access Granted!</div>
+    <p id="status-message">Show gestures to unlock!</p>
+    <script>
+        const PASSWORD = ["OPEN_HAND", "THUMB_UP", "OPEN_HAND"];
+        let enteredSequence = [];
+        let currentGesture = document.getElementById("current-gesture");
+        let statusMessage = document.getElementById("status-message");
+        let successMessage = document.getElementById("success-message");
+
+        // EventSource to listen to gesture events
+        const eventSource = new EventSource("/gesture_status");
+
+        eventSource.onmessage = (event) => {
+            const gesture = event.data;
+
+            // Display the current detected gesture
+            currentGesture.textContent = `Detected Gesture: ${gesture}`;
+
+            // Add detected gesture to the entered sequence
+            if (gesture !== "None") {
+                enteredSequence.push(gesture);
+
+                // Check if the sequence matches the password
+                const matchLength = enteredSequence.reduce((match, g, i) =>
+                    g === PASSWORD[i] ? match + 1 : match, 0);
+
+                // Check for a successful sequence match
+                if (matchLength === PASSWORD.length) {
+                    successMessage.style.display = "block";
+                    statusMessage.textContent = "";
+                    enteredSequence = []; // Reset sequence after success
+                } else if (
+                    enteredSequence.length > PASSWORD.length ||
+                    enteredSequence[matchLength - 1] !== PASSWORD[matchLength - 1]
+                ) {
+                    // Reset on failure
+                    statusMessage.textContent = "Invalid Sequence! Try Again.";
+                    statusMessage.style.color = "red";
+                    successMessage.style.display = "none";
+                    enteredSequence = [];
+                } else {
+                    // Update status while matchi
